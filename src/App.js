@@ -1,25 +1,116 @@
-import logo from './logo.svg';
-import './App.css';
+import { useState } from 'react'
+import './App.css'
+import '@chatscope/chat-ui-kit-styles/dist/default/styles.min.css';
+import { MainContainer, ChatContainer, MessageList, Message, MessageInput, TypingIndicator } from '@chatscope/chat-ui-kit-react';
+
+
 
 function App() {
+  
+  const API_KEY = process.env.REACT_APP_KEY;
+
+  const [sysMessage, setSysMessage] = useState('');
+  const systemMessage = {
+    "role": "system", "content": sysMessage
+  }
+  
+  const [messages, setMessages] = useState([
+    {
+      message: "Hello, I'm ChatGPT! you can Ask me anything!",
+      sentTime: "just now",
+      sender: "ChatGPT"
+    }
+  ]);
+  const [isTyping, setIsTyping] = useState(false);
+
+  const handleSend = async (message) => {
+    const newMessage = {
+      message,
+      direction: 'outgoing',
+      sender: "user"
+    };
+
+    const newMessages = [...messages, newMessage];
+    
+    setMessages(newMessages);
+
+
+    setIsTyping(true);
+    await processMessageToChatGPT(newMessages);
+  };
+
+  async function processMessageToChatGPT(chatMessages) { 
+
+
+    let apiMessages = chatMessages.map((messageObject) => {
+      let role = "";
+      if (messageObject.sender === "ChatGPT") {
+        role = "assistant";
+      } else {
+        role = "user";
+      }
+      return { role: role, content: messageObject.message}
+    });
+
+
+
+    const apiRequestBody = {
+      "model": "gpt-3.5-turbo",
+      "messages": [
+        systemMessage, 
+        ...apiMessages 
+      ]
+    }
+
+    await fetch("https://api.openai.com/v1/chat/completions", 
+    {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + API_KEY,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(apiRequestBody)
+    }).then((data) => {
+      return data.json();
+    }).then((data) => {
+      console.log(data);
+      setMessages([...chatMessages, {
+        message: data.choices[0].message.content,
+        sender: "ChatGPT"
+      }]);
+      setIsTyping(false);
+    });
+  }
+
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      <div id="container">
+      
+        <h2>System Prompt</h2>
+        <p>The system prompt for the ChatGPT API is the initial text or message that is provided by the user to the API in order to generate a response from the ChatGPT model.
+           The system prompt can be thought of as the input or query that the model uses to generate its response.
+            The quality and specificity of the system prompt can have a significant impact on the relevance and accuracy of the model's response. Therefore,
+           it is important to provide a clear and concise system prompt that accurately conveys the user's intended message or question.
+           <a href='https://www.greataiprompts.com/prompts/best-system-prompts-for-chatgpt/' target='_blank'> See exambles of system prompts here</a></p>
+        <input type="text" placeholder="Type your system prompt here"  onChange={(e) => setSysMessage(e.target.value)} />
+        <MainContainer>
+          <ChatContainer>       
+            <MessageList 
+              scrollBehavior="smooth" 
+              typingIndicator={isTyping ? <TypingIndicator content="ChatGPT is processing" /> : null}
+            >
+              {messages.map((message, i) => {
+                console.log(message)
+                return <Message key={i} model={message} />
+              })}
+            </MessageList>
+            <MessageInput placeholder="Type message here" onSend={handleSend} />        
+          </ChatContainer>
+        </MainContainer>
+    
+      </div>
     </div>
-  );
+  )
 }
 
-export default App;
+export default App

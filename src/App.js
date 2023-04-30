@@ -10,15 +10,18 @@ function App() {
   const API_KEY = process.env.REACT_APP_KEY;
 
   const [sysMessage, setSysMessage] = useState('');
+  const [data, setData] = useState([]);
   const systemMessage = {
     "role": "system", "content": sysMessage
   }
-  
+
+
   const [messages, setMessages] = useState([
     {
-      message: "Hello, I'm ChatGPT! you can Ask me anything!",
+      message: "Hello, I'm ChatGPT! You can ask me anything!",
       sentTime: "just now",
-      sender: "ChatGPT"
+      sender: "ChatGPT",
+      cost: null
     }
   ]);
   const [isTyping, setIsTyping] = useState(false);
@@ -27,7 +30,8 @@ function App() {
     const newMessage = {
       message,
       direction: 'outgoing',
-      sender: "user"
+      sender: "user",
+      cost: null
     };
 
     const newMessages = [...messages, newMessage];
@@ -76,12 +80,17 @@ function App() {
       console.log(data);
       setMessages([...chatMessages, {
         message: data.choices[0].message.content,
-        sender: "ChatGPT"
+        sender: "ChatGPT",
+        cost: true,
+        completion_tokens: data.usage.completion_tokens,
+        prompt_tokens: data.usage.prompt_tokens,
+        total_tokens: data.usage.total_tokens
       }]);
+      setData(data);
       setIsTyping(false);
     });
   }
-
+ console.log(messages[0].cost,"messages")
   return (
     <div className="App">
       <div id="container">
@@ -100,8 +109,21 @@ function App() {
               typingIndicator={isTyping ? <TypingIndicator content="ChatGPT is processing" /> : null}
             >
               {messages.map((message, i) => {
-                console.log(message)
-                return <Message key={i} model={message} />
+                
+                return(
+                  <>
+               
+                  <div className='msg'>
+                  <Message key={i} model={message}  />
+                  <div className='msg-cost'>
+                    {message.total_tokens? <p>Total Tokens Cost: {message.total_tokens}</p>:null}
+                  
+                  </div>
+                  </div>
+                  </>
+
+                )
+                 
               })}
             </MessageList>
             <MessageInput placeholder="Type message here" onSend={handleSend} />        

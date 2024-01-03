@@ -13,6 +13,7 @@ body {
 
 #container {
 width: clamp(300px, 90%, 1000px);
+  margin: 20px 0; 
 }
 
 .cs-button--attachment {
